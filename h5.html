@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>寻找金星锦鲤</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,width=device-width,initial-scale=1.0" />
+    <link type="text/css" rel="stylesheet" href="./assets/css/style.css" />
+    <link href="https://cdn.bootcss.com/cropper/4.0.0-beta/cropper.min.css" rel="stylesheet">
+    <link href="https://cdn.bootcss.com/font-awesome/5.8.2/css/all.min.css" rel="stylesheet">
+</head>
+
+<body>
+    <div id="app">
+        <div id="main" style="display: none;" v-show="isReady">
+            <img class="bg unselectable" src="./assets/img/bg.jpg" />
+            <div class="abs" style="width: 100%; height: 100%; top: 0px;">
+                <img class="unselectable" src="./assets/img/H5GIF.gif" />
+            </div>
+            <div id="shotBox" class="content abs fle" style="padding-top: 10px;">
+                <div v-show="showLoading" class="abs" style="width: 100%; height: 100%; top: 0px;">
+                    <img class="unselectable" src="./assets/img/bg.jpg" />
+                </div>
+                <div v-show="showLoading" class="abs" style="width: 100%; height: 100%; top: 0px;">
+                    <img class="unselectable" src="./assets/img/H5GIF.gif" />
+                </div>
+                <div class="cont-head rel fle something">
+                    <div class="head-img">
+                        <img class="unselectable" src="./assets/img/head.png" />
+                    </div>
+                    <div class="abs" style="top: 0; left: 20px; width: 20%;">
+                        <img class="unselectable" src="./assets/img/head_left.png" />
+                    </div>
+                    <div class="abs" style="top: 0; right: 20px; width: 10%;">
+                        <img class="unselectable" src="./assets/img/head_right.png" />
+                    </div>
+                </div>
+                <div class="cont-main rel fle">
+                    <div class="content-item">
+                        <div class="upload-img-bg rel">
+                            <div class="upload-img abs">
+                                <img class="unselectable" src="./assets/img/file_bg.png">
+                            </div>
+                            <div v-show="!uploadImg && !showCropper" class="upload-img abs">
+                                <div style="text-align: center; z-index: 11;">
+                                    <span class="fa fa-plus" style="color: black; margin: auto;"></span>
+                                    <span>上传照片</span>
+                                </div>
+                            </div>
+                            <!-- <div class="upload-img abs">
+									<img class="preview" v-if="uploadImg" v-bind:src="uploadImg" />
+								</div> -->
+                            <div id="canvas" class="upload-img abs"></div>
+                            <img class="unselectable" src="./assets/img/file_border.png" />
+                            <input class="upload-photo" type="file" @change="selectImgs()" accept="image/*" ref="file">
+                        </div>
+                    </div>
+                    <div class="input-box">
+                        我是
+                        <div class="rel" style="display: inline-block; margin: 0 3px;">
+                            <span v-show="showQrCode" style="display: none; margin: 0 5px;" class="data-bg">{{ name }}</span>
+                            <div v-show="!showQrCode" style="width: 100px;">
+                                <img class="unselectable" src="./assets/img/input_bg.png">
+                                <input type="text" v-model="name" class="input-name" placeholder="请填写您的名字" @focus="inputOnFocus" maxlength="8">
+                            </div>
+                        </div>
+                        第
+                        <span class="data-bg" style="margin: 0 3px;">{{ total }}</span> 位金星追梦者
+                    </div>
+                    <div class="content-item fle">
+                        <div class="content-img">
+                            <img class="unselectable" src="./assets/img/content_img1.png">
+                        </div>
+                    </div>
+                    <div class="content-item fle">
+                        <div class="content-img">
+                            <img class="unselectable" src="./assets/img/content_img2.png">
+                        </div>
+                    </div>
+                    <div class="content-item fle">
+                        <div class="content-img">
+                            <img class="unselectable" src="./assets/img/content_img3.png">
+                        </div>
+                    </div>
+                </div>
+                <div class="cont-foot rel fle">
+                    <div v-show="!showQrCode" style="display: none;" class="submit-btn" @click="submitInfo">
+                        <img class="unselectable" src="./assets/img/submit_btn.png">
+                    </div>
+                    <div v-show="showQrCode" style="display: none;" class="qrcode-box">
+                        <div id="qrcode"></div>
+                        <div class="qrcode abs">
+                            <img class="unselectable" style="width: 50px; height: 50px; margin: 2px;" src="./assets/img/qrcode.png">
+                        </div>
+                        <div class="qrcode-tip abs">
+                            <img class="unselectable" src="./assets/img/qrcode_tip.png">
+                        </div>
+                        <div class="qrcode-right abs">
+                            <img class="unselectable" src="./assets/img/foot.png">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="music-btn" v-bind:class="{ rotate: isAudioPlay }" @click="playAudio">
+            <audio id="musicAd" src="./assets/trip.mp3" loop preload autoplay></audio>
+        </div>
+        <!-- 截图显示 -->
+        <div class="overlay" style="display: none; background: transparent;position: fixed;top: 0;left: 0;right: 0;bottom: 0;width: 100%;height: 100%;" v-show="!!showOverlay"></div>
+        <div class="masker" style="display: none; background: rgba(0,0,0,.8);" v-show="!!screenShotImg">
+            <div class="prud-img" :class="!!screenShotImg ? 'scale' : ''">
+                <span class="close fa fa-times" @click="reset"></span>
+                <img v-bind:src="screenShotImg" style="height: auto; position: absolute; top: 50%; transform: translateY(-50%);" />
+            </div>
+            <div class="save-img">
+                <img class="unselectable" src="assets/img/save_word.png" />
+            </div>
+        </div>
+        <!-- 图片裁剪框 -->
+        <div class="masker tailoring-container" style="display: none" v-show="showCropper">
+            <div class="tailoring-content">
+                <img class="unselectable" id="tailoringImg">
+            </div>
+            <div class="tailoring-cancel" @click="cancelTailoring">取消</div>
+            <div class="tailoring-confirm" @click="confirmTailoring">确定</div>
+        </div>
+        <!-- 提示框 -->
+        <div class="masker" style="display: none;" v-show="showAlert">
+            <div class="alert-box">
+                <div class="alert-desc">
+                    {{ message }}
+                </div>
+                <div class="alert-sure-btn" @click="showAlert = false">确定</div>
+            </div>
+        </div>
+        <!-- 截图loading页 -->
+        <div class="masker loading" v-show="showLoading">
+            <div class="img">
+                <div>
+                    <img class="spinning unselectable" src="./assets/img/loading.png" />
+                </div>
+                <span>生成中...</span>
+            </div>
+        </div>
+        <!-- 进页面loading页 -->
+        <div id="loading" class="masker loading">
+            <div class="img">
+                <img class="spinning unselectable" src="./assets/img/loading.png" />
+                <span>Loading...</span>
+            </div>
+        </div>
+    </div>
+    <script src="http://res.wx.qq.com/open/js/jweixin-1.4.0.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.0.0-rc.1"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue"></script>
+    <!-- <script src="https://cdn.jsdelivr.net/npm/jquery.qrcode"></script> -->
+    <script src="https://cdn.jsdelivr.net/npm/cropper@4.0.0/dist/cropper.min.js"></script>
+    <!-- <script src="https://cdn.bootcss.com/cropper/4.0.0-beta/cropper.min.js"></script> -->
+    <script>
+        var app = new Vue({
+            el: '#app',
+            data: {
+                message: '',
+                total: 0,
+                name: "",
+                uploadImg: '',
+                screenShotImg: '',
+                showAlert: false,
+                showQrCode: false,
+                showCropper: false,
+                isAudioPlay: true,
+                isReady: true,
+                showLoading: false, //截图等待
+                showOverlay: false,
+            },
+            mounted: function() {
+                // this.wxConfig();
+                let wxOpenId = localStorage.getItem("h5WxOpenId");
+
+                if (wxOpenId) {
+                    this.wxOpenId = wxOpenId;
+                } else if (/wxOpenId/.test(location.search)) {
+                    wxOpenId = location.search.match(/wxOpenId=([^&]*)&?/)[1];
+                    this.wxOpenId = wxOpenId;
+                    localStorage.setItem("h5WxOpenId", wxOpenId);
+                } else {
+                    // ***If cannot find wxOpenId anywhere, redirect to /api/wxuser/authorize?state=${location.pathname}
+                    // ***We'll redirect back to current location.pathname after authorized.
+                    // ***After authorized, we'll get back to this ngOnInit again, and findAndSave wxOpenId via Search.
+                    location.href = `/api/wxuser/authorize?state=${location.pathname}`;
+                    return;
+                }
+
+                if (history && history.pushState) {
+                    history.pushState("", document.title, window.location.pathname);
+                } else {
+                    location.href = location.pathname;
+                }
+
+                $.post({
+                    url: `/api/wxuser/increase?wxOpenId=${wxOpenId}`,
+                }).then(res => {
+                    if (!res || !res.data || !res.data.total) {
+                        this.$data.total = 0;
+                        alert("获取编号失败");
+                        return;
+                    }
+                    this.$data.total = res.data.total;
+                }, err => {
+                    this.$data.total = 0;
+                    alert("获取编号失败");
+                });
+
+                // cropper图片裁剪  
+                $('#tailoringImg').cropper({
+                    aspectRatio: 1.24, // 默认比例  
+                    // guides: false, // 裁剪框的虚线(九宫格)  
+                    // autoCropArea: 0.9, // 0-1之间的数值，定义自动剪裁区域的大小，默认0.8  
+                    // movable: false, // 是否允许移动图片  
+                    // dragCrop: true, // 是否允许移除当前的剪裁框，并通过拖动来新建一个剪裁框区域  
+                    // movable: true, // 是否允许移动剪裁框  
+                    // resizable: true, // 是否允许改变裁剪框的大小  
+                    // zoomable: true, // 是否允许缩放图片大小  
+                    // mouseWheelZoom: false, // 是否允许通过鼠标滚轮来缩放图片  
+                    // touchDragZoom: true, // 是否允许通过触摸移动来缩放图片  
+                    // rotatable: false, // 是否允许旋转图片  
+                    // crop: function(e) {
+                    //     // 输出结果数据裁剪图像。
+                    // }
+                });
+
+                setTimeout(function() {
+                    const audio = document.getElementById("musicAd") || "";
+                    if (!audio) {
+                        return;
+                    }
+                    audio.play();
+                    document.addEventListener("WeixinJSBridgeReady", function() {
+                        audio.play()
+                    }, false);
+                }, 20);
+            },
+            methods: {
+                // 微信接口
+                wxConfig: function() {
+                    wx.config({
+                        debug: true, // 开启调试模式,调用的所有api的返回值会在客户端alert出来，若要查看传入的参数，可以在pc端打开，参数信息会通过log打出，仅在pc端时才会打印。
+                        appId: '', // 必填，公众号的唯一标识
+                        timestamp: new Date(), // 必填，生成签名的时间戳
+                        nonceStr: '', // 必填，生成签名的随机串
+                        signature: '', // 必填，签名
+                        jsApiList: ['chooseImage'] // 必填，需要使用的JS接口列表
+                    });
+                    wx.ready(function() {
+                        // config信息验证后会执行ready方法，所有接口调用都必须在config接口获得结果之后，config是一个客户端的异步操作，所以如果需要在页面加载时就调用相关接口，则须把相关接口放在ready函数中调用来确保正确执行。对于用户触发时才调用的接口，则可以直接调用，不需要放在ready函数中。
+                    });
+                    wx.error(function(res) {
+                        console.log(res);
+                    });
+                },
+                chooseImage: function() {
+                    var _this = this;
+                    wx.chooseImage({
+                        count: 1, // 默认9
+                        sizeType: ['original', 'compressed'], // 可以指定是原图还是压缩图，默认二者都有
+                        sourceType: ['album', 'camera'], // 可以指定来源是相册还是相机，默认二者都有
+                        success: function(res) {
+                            // res.localIds 返回选定照片的本地ID列表，localId可以作为img标签的src属性显示图片
+                            _this.uploadImg = res.localIds[0];
+                        }
+                    });
+                },
+
+                playAudio: function() {
+                    var audio = document.getElementById('musicAd');
+                    audio.currentTime = 0; //重新播放 
+                    if (audio !== null) {
+                        if (audio.paused) {
+                            audio.play(); // 播放 
+                            this.isAudioPlay = true;
+                        } else {
+                            audio.pause(); // 暂停
+                            this.isAudioPlay = false;
+                        }
+                    }
+                },
+                selectImgs: function() {
+                    var _this = this;
+                    var file = this.$refs.file.files[0];
+                    if (file) {
+                        var reader = new FileReader();
+                        reader.readAsDataURL(file)
+                        reader.onload = function() {
+                            // clear the selected file.
+                            _this.$refs.file.value = '';
+
+                            // 更换cropper的图片  
+                            $('#tailoringImg').cropper('replace', reader.result, false); // 默认false，适应高度，不失真  
+                            _this.showCropper = true;
+                        }
+
+                        $(".tailoring-container").toggle();
+                    } else {
+                        this.uploadImg = '';
+                    }
+                },
+                cancelTailoring: function() {
+                    $(".tailoring-container").toggle();
+                },
+                confirmTailoring: function() {
+                    var _this = this;
+                    var cas = $('#tailoringImg').cropper('getCroppedCanvas'); // 获取被裁剪后的canvas
+                    var ctx = cas.getContext("2d");
+                    var maskImg = new Image();
+                    maskImg.src = "./assets/img/file_bg.png";
+                    maskImg.onload = function() {
+                        console.log("drag mask.", cas.width, cas.height);
+                        ctx.globalCompositeOperation = "destination-in";
+                        ctx.drawImage(maskImg, 0, 0, cas.width, cas.height);
+                        var base64 = cas.toDataURL('image/jpeg'); // 转换为base64
+                        _this.uploadImg = base64; // 显示图片
+                        $("#canvas").empty(); //清空 canvas 元素
+                        $("#canvas").append(cas);
+                        _this.cancelTailoring(); // 关闭裁剪框
+                    }
+                },
+                submitInfo: function() {
+                    const _this = this;
+                    if (!this.total) {
+                        this.showAlert = true;
+                        this.message = '未能获取到编号~';
+                        return;
+                    }
+                    if (!this.name) {
+                        this.showAlert = true;
+                        this.message = '请填写您的姓名~';
+                        return;
+                    }
+                    if (!this.uploadImg) {
+                        this.showAlert = true;
+                        this.message = '请上传您的照片~';
+                        return;
+                    }
+                    this.showQrCode = true;
+                    this.showLoading = true;
+
+                    setTimeout(function() {
+                        _this.screenShot();
+                    }, 100);
+                },
+                // 截图
+                screenShot: function() {
+                    var _this = this;
+                    console.log('dpi:', window.devicePixelRatio);
+                    html2canvas(document.getElementById('shotBox'), {
+                        dpi: window.devicePixelRatio,
+                    }).then(function(canvas) {
+                        setTimeout(function() {
+                            _this.screenShotImg = canvas.toDataURL('image/png');
+
+                            $.post({
+                                url: `/api/wxuser/upload?wxOpenId=${_this.wxOpenId}`,
+                                data: {
+                                    name: _this.name,
+                                    screenShotImg: _this.screenShotImg,
+                                    avatarImg: _this.uploadImg,
+                                }
+                            }).then(res => {
+                                _this.showLoading = false;
+                                if (!res || res.code !== 0) {
+                                    _this.screenShotImg = '';
+                                    _this.showQrCode = false;
+                                    alert(res && res.message || "上传图片失败, 请重试");
+                                    return;
+                                }
+                                _this.showOverlay = true;
+                            }, err => {
+                                _this.showLoading = false;
+                                _this.screenShotImg = '';
+                                _this.showQrCode = false;
+                                alert("上传图片失败, 请重试");
+                            });
+                        }, 100);
+                    });
+                },
+                reset: function() {
+                    this.uploadImg = '';
+                    this.screenShotImg = '';
+                    this.showOverlay = false;
+                    this.showQrCode = false;
+                    this.showCropper = false;
+                    $("#canvas").empty();
+                },
+                inputOnFocus() {
+                    /*安卓手机控制高度为屏幕高度*/
+                    var screenHeight = document.body.clientHeight;
+                    var u = navigator.userAgent;
+                    var isAndroid = u.indexOf('Android') > -1 || u.indexOf('Adr') > -1; //android终端
+                    $("html,body").height(screenHeight);
+                },
+            },
+        });
+
+        window.onload = function() {
+            setTimeout(function() {
+                $('#loading').fadeOut();
+                var audio = document.getElementById('musicAd');
+                if (audio !== null) {
+                    if (audio.paused) { //未播放时重新播放 
+                        audio.currentTime = 0;
+                        audio.play(); // 播放 
+                    }
+                }
+            }, 1000);
+        };
+    </script>
+</body>
+
+</html>
